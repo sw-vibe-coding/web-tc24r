@@ -518,7 +518,7 @@ fn app() -> Html {
 
             <h1 style="font-size:1.4rem; color:#89b4fa;">
                 {"web-tc24r"}
-                <span style="font-size:0.8rem; color:#9399b2; margin-left:8px;">
+                <span style="font-size:0.8rem; color:#bac2de; margin-left:8px;">
                     {"COR24 compiler in your browser"}
                 </span>
             </h1>
@@ -526,20 +526,20 @@ fn app() -> Html {
             <div style="display:flex; flex:1; gap:12px; min-height:0;">
                 // C source editor
                 <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:8px;">
-                    <label style="font-size:0.85rem; color:#a6adc8;">{"C Source"}</label>
+                    <label style="font-size:0.9rem; color:#cdd6f4; font-weight:600;">{"C Source"}</label>
                     <Editor value={AttrValue::from((*source).clone())} on_change={on_source_change}
                             error_line={c_error_line} />
                 </div>
 
                 // Listing
                 <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:8px;">
-                    <label style="font-size:0.85rem; color:#a6adc8;">{"Listing"}</label>
+                    <label style="font-size:0.9rem; color:#cdd6f4; font-weight:600;">{"Listing"}</label>
                     { render_listing(&listing, asm_error_line) }
                 </div>
 
                 // Emulator panel
                 <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:8px;">
-                    <label style="font-size:0.85rem; color:#a6adc8;">{"Emulator"}</label>
+                    <label style="font-size:0.9rem; color:#cdd6f4; font-weight:600;">{"Emulator"}</label>
                     <div style="flex:1; display:flex; flex-direction:column; gap:8px; \
                                 background:#181825; border:1px solid #313244; border-radius:6px; \
                                 padding:12px; overflow:auto;">
@@ -568,7 +568,7 @@ fn app() -> Html {
 
                         // UART terminal (focusable for keyboard input)
                         <div style="flex:1; min-height:80px;">
-                            <div style="color:#9399b2; font-size:0.7rem; margin-bottom:2px;">
+                            <div style="color:#bac2de; font-size:0.8rem; margin-bottom:2px;">
                                 {"UART"}
                                 if *running {
                                     <span style="color:#a6adc8;">{" (type here for input)"}</span>
@@ -581,7 +581,7 @@ fn app() -> Html {
                                        outline:none; cursor:text; \
                                        border:1px solid transparent;">
                                 { if uart_output.is_empty() && !*running && !*halted {
-                                    html! { <span style="color:#7f849c;">{"(no output)"}</span> }
+                                    html! { <span style="color:#a6adc8;">{"(no output)"}</span> }
                                 } else {
                                     html! { {&*uart_output} }
                                 }}
@@ -590,26 +590,26 @@ fn app() -> Html {
 
                         // Registers
                         <div>
-                            <div style="color:#9399b2; font-size:0.7rem; margin-bottom:4px;">{"Registers"}</div>
+                            <div style="color:#bac2de; font-size:0.8rem; margin-bottom:4px;">{"Registers"}</div>
                             <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:4px; \
                                         font-family:monospace; font-size:12px;">
                                 { for (0..8).map(|i| {
                                     html! {
                                         <div style="background:#11111b; padding:2px 6px; border-radius:3px; \
                                                     display:flex; justify-content:space-between;">
-                                            <span style="color:#9399b2;">{REG_NAMES[i]}</span>
+                                            <span style="color:#bac2de;">{REG_NAMES[i]}</span>
                                             <span style="color:#89b4fa;">{format!("{:06x}", registers[i])}</span>
                                         </div>
                                     }
                                 }) }
                                 <div style="background:#11111b; padding:2px 6px; border-radius:3px; \
                                             display:flex; justify-content:space-between;">
-                                    <span style="color:#9399b2;">{"pc"}</span>
+                                    <span style="color:#bac2de;">{"pc"}</span>
                                     <span style="color:#cba6f7;">{format!("{:06x}", *pc_val)}</span>
                                 </div>
                                 <div style="background:#11111b; padding:2px 6px; border-radius:3px; \
                                             display:flex; justify-content:space-between;">
-                                    <span style="color:#9399b2;">{"c"}</span>
+                                    <span style="color:#bac2de;">{"c"}</span>
                                     <span style="color:#f9e2af;">{ if *cond_flag { "1" } else { "0" } }</span>
                                 </div>
                             </div>
@@ -619,7 +619,7 @@ fn app() -> Html {
                         <div style="display:flex; gap:16px; align-items:center;">
                             // LED D2
                             <div style="display:flex; align-items:center; gap:6px;">
-                                <span style="color:#9399b2; font-size:0.7rem;">{"LED D2"}</span>
+                                <span style="color:#bac2de; font-size:0.8rem;">{"LED D2"}</span>
                                 <div style={format!("width:14px; height:14px; border-radius:50%; \
                                     background:{}; border:1px solid #585b70;",
                                     if *led_state & 1 == 0 { "#a6e3a1" } else { "#313244" }
@@ -627,9 +627,9 @@ fn app() -> Html {
                             </div>
                             // Switch S2
                             <div style="display:flex; align-items:center; gap:6px;">
-                                <span style="color:#9399b2; font-size:0.7rem;">{"S2"}</span>
+                                <span style="color:#bac2de; font-size:0.8rem;">{"S2"}</span>
                                 <button onclick={on_switch_toggle}
-                                    style={format!("padding:2px 10px; border-radius:4px; font-size:0.7rem; \
+                                    style={format!("padding:2px 10px; border-radius:4px; font-size:0.8rem; \
                                         cursor:pointer; border:1px solid #585b70; \
                                         background:{}; color:{};",
                                         if *switch_pressed { "#a6e3a1" } else { "#313244" },
@@ -642,7 +642,7 @@ fn app() -> Html {
 
                         // Status bar
                         <div style="display:flex; justify-content:space-between; align-items:center; \
-                                    font-size:0.7rem; color:#9399b2; border-top:1px solid #313244; \
+                                    font-size:0.8rem; color:#bac2de; border-top:1px solid #313244; \
                                     padding-top:6px;">
                             <span>{&*status_msg}</span>
                             <span>{format!("{} instructions", *instr_count)}</span>
@@ -688,14 +688,14 @@ fn app() -> Html {
 
             // Bundled headers (collapsible)
             <details style="font-size:0.8rem;">
-                <summary style="color:#9399b2; cursor:pointer; user-select:none;">
+                <summary style="color:#bac2de; cursor:pointer; user-select:none;">
                     {"Bundled headers (stdio.h, stdlib.h, string.h, cor24.h, stdbool.h)"}
                 </summary>
                 <div style="display:flex; gap:8px; margin-top:8px; max-height:300px; overflow:auto;">
                     { for compiler::HEADERS.iter().map(|(name, content)| html! {
                         <details style="flex:1; min-width:0;">
                             <summary style="color:#89b4fa; cursor:pointer; font-family:monospace; \
-                                            font-size:0.75rem; padding:4px 8px; background:#181825; \
+                                            font-size:0.85rem; padding:4px 8px; background:#181825; \
                                             border-radius:4px 4px 0 0; border:1px solid #313244;">
                                 {*name}
                             </summary>
@@ -712,7 +712,7 @@ fn app() -> Html {
 
             // Footer
             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; \
-                        font-size:0.65rem; color:#9399b2; padding-top:4px;">
+                        font-size:0.85rem; color:#bac2de; padding-top:4px;">
                 <span>{"\u{00a9} 2026 Michael A. Wright"}</span>
                 <span>{"\u{00b7}"}</span>
                 <span>{"MIT License"}</span>
@@ -754,7 +754,7 @@ fn render_listing(listing: &[AssembledLine], error_line: Option<usize>) -> Html 
         <div style="flex:1; display:flex; background:#181825; border:1px solid #313244; \
                     border-radius:6px; overflow:auto; font-family:monospace; font-size:13px; \
                     line-height:1.5;">
-            <pre style="margin:0; padding:12px 8px 12px 0; text-align:right; color:#9399b2; \
+            <pre style="margin:0; padding:12px 8px 12px 0; text-align:right; color:#bac2de; \
                         user-select:none; background:#11111b; border-right:1px solid #313244; \
                         white-space:pre;">
                 { for listing.iter().enumerate().map(|(i, _)| {
@@ -778,8 +778,8 @@ fn render_listing(listing: &[AssembledLine], error_line: Option<usize>) -> Html 
                         let hex_end = hex_start + 14;
                         html! {
                             <div style={bg.to_string()}>
-                                <span style="color:#9399b2;">{&formatted[..addr_end]}</span>
-                                <span style="color:#9399b2;">{&formatted[addr_end..hex_start]}</span>
+                                <span style="color:#bac2de;">{&formatted[..addr_end]}</span>
+                                <span style="color:#bac2de;">{&formatted[addr_end..hex_start]}</span>
                                 <span style="color:#a6e3a1;">{&formatted[hex_start..hex_end.min(formatted.len())]}</span>
                                 if formatted.len() > hex_end {
                                     <span style="color:#f9e2af;">{&formatted[hex_end..]}</span>
