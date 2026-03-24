@@ -30,6 +30,120 @@ int main() {
 }
 "#;
 
+/// Built-in interactive demos (inline source, not fetched from GitHub).
+const INTERACTIVE_DEMOS: &[(&str, &str, &str)] = &[
+    ("echo", "UART echo (type to see characters)", r#"// UART echo — type in the terminal, characters echo back
+// Demonstrates: interrupt-driven UART RX, polling UART TX
+// Uses __attribute__((interrupt)) for the ISR
+
+#define UART_DATA   0xFF0100
+#define UART_STATUS 0xFF0101
+#define INT_ENABLE  0xFF0010
+
+void putc(int c) {
+    while (*(char *)UART_STATUS & 0x80) {}
+    *(char *)UART_DATA = c;
+}
+
+// ISR: called on each UART RX byte
+__attribute__((interrupt))
+void uart_isr() {
+    int c = *(char *)UART_DATA;  // read & acknowledge
+    putc(c);                      // echo back
+    if (c == 13 || c == 10) {
+        putc(62);  // '>'
+        putc(32);  // ' '
+    }
+}
+
+int main() {
+    // Set interrupt vector
+    asm("la r0,_uart_isr\nmov iv,r0");
+    // Enable UART RX interrupt
+    *(char *)INT_ENABLE = 1;
+
+    putc(62); // '>'
+    putc(32); // ' '
+
+    // Spin forever (ISR handles input)
+    while (1) {}
+}
+"#),
+
+    ("led-switch", "LED follows switch S2", r#"// LED follows switch — press S2 to light LED D2
+// Demonstrates: polling switch input, controlling LED output
+// Click the S2 button below to toggle!
+
+#define LED_REG  0xFF0000
+
+int main() {
+    while (1) {
+        int sw = *(char *)LED_REG;
+        // Switch is bit 0: 1=released, 0=pressed
+        // LED is active-low: write 0=on, 1=off
+        // So just write the switch state to LED — pressed=0=LED on
+        *(char *)LED_REG = sw & 1;
+    }
+}
+"#),
+
+    ("counter", "Live counter on UART", r#"// Live counter — prints incrementing numbers
+// Demonstrates: busy-wait loop, UART output
+
+#include <stdio.h>
+
+void delay() {
+    int i = 0;
+    while (i < 5000) { i++; }
+}
+
+int main() {
+    int n = 0;
+    while (1) {
+        printf("%d\n", n);
+        n++;
+        delay();
+    }
+}
+"#),
+
+    ("adder", "Interactive adder (type two numbers)", r#"// Interactive adder — type two numbers separated by Enter
+// Demonstrates: UART input parsing, printf output
+
+#include <stdio.h>
+
+int getc_poll() {
+    while (!(*(char *)0xFF0101 & 0x01)) {}
+    return *(char *)0xFF0100;
+}
+
+int read_int() {
+    int n = 0;
+    int started = 0;
+    while (1) {
+        int c = getc_poll();
+        putchar(c);  // echo
+        if (c >= 48 && c <= 57) {
+            n = n * 10 + (c - 48);
+            started = 1;
+        } else if (started) {
+            return n;
+        }
+    }
+}
+
+int main() {
+    while (1) {
+        printf("a? ");
+        int a = read_int();
+        printf("b? ");
+        int b = read_int();
+        printf("= %d\n", a + b);
+    }
+}
+"#),
+];
+
 const DEMOS: &[(&str, &str)] = &[
     ("demo.c", "counter"),
     ("demo2.c", "char, pointers, casts, MMIO"),
@@ -109,6 +223,10 @@ fn app() -> Html {
     // Switch S2
     let switch_pressed = use_state(|| false);
 
+    // UART input buffer (keyboard → emulator, drained in run loop)
+    let uart_input: Rc<RefCell<std::collections::VecDeque<u8>>> =
+        use_mut_ref(std::collections::VecDeque::new);
+
     // Interval handle
     let interval_handle = use_mut_ref(|| None::<gloo_timers::callback::Interval>);
 
@@ -127,6 +245,7 @@ fn app() -> Html {
         let listing = listing.clone();
         let compile_error = compile_error.clone();
         let emu = emu.clone();
+        let uart_input = uart_input.clone();
         let uart_output = uart_output.clone();
         let registers = registers.clone();
         let pc_val = pc_val.clone();
@@ -179,8 +298,12 @@ fn app() -> Html {
             status_msg.set("Running".into());
             running.set(true);
 
+            // Clear input buffer
+            uart_input.borrow_mut().clear();
+
             // Start run loop
             let emu = emu.clone();
+            let uart_input = uart_input.clone();
             let uart_output = uart_output.clone();
             let registers = registers.clone();
             let pc_val = pc_val.clone();
@@ -196,6 +319,18 @@ fn app() -> Html {
 
             let interval = gloo_timers::callback::Interval::new(16, move || {
                 let mut e = emu.borrow_mut();
+
+                // Drain keyboard input buffer into UART RX when free
+                {
+                    let mut buf = uart_input.borrow_mut();
+                    if !buf.is_empty()
+                        && (e.read_byte(0xFF0101) & 0x01 == 0)
+                        && let Some(byte) = buf.pop_front()
+                    {
+                        e.send_uart_byte(byte);
+                    }
+                }
+
                 let batch = e.run_batch(10_000);
 
                 // Update display state
@@ -255,7 +390,7 @@ fn app() -> Html {
     };
 
     let on_key = {
-        let emu = emu.clone();
+        let uart_input = uart_input.clone();
         Callback::from(move |e: KeyboardEvent| {
             e.prevent_default();
             let key = e.key();
@@ -268,7 +403,7 @@ fn app() -> Html {
             } else {
                 return;
             };
-            emu.borrow_mut().send_uart_byte(byte);
+            uart_input.borrow_mut().push_back(byte);
         })
     };
 
@@ -294,15 +429,25 @@ fn app() -> Html {
             let Some(select) = e.target().and_then(|t| t.dyn_into::<HtmlSelectElement>().ok()) else {
                 return;
             };
-            let filename = select.value();
-            if filename.is_empty() { return; }
+            let value = select.value();
+            if value.is_empty() { return; }
             select.set_value("");
 
             // Stop any running emulator
             *interval_handle.borrow_mut() = None;
             running.set(false);
 
-            let url = format!("{RAW_BASE}{filename}");
+            // Check interactive demos first (inline source)
+            if let Some((_, _, src)) = INTERACTIVE_DEMOS.iter().find(|(id, _, _)| *id == value) {
+                source.set(src.to_string());
+                compile_error.set(None);
+                listing.set(Vec::new());
+                status_msg.set("Ready".into());
+                return;
+            }
+
+            // Fetch from GitHub
+            let url = format!("{RAW_BASE}{value}");
             let source = source.clone();
             let compile_error = compile_error.clone();
             let listing = listing.clone();
@@ -320,7 +465,7 @@ fn app() -> Html {
                         }
                     }
                     _ => {
-                        source.set(format!("// Failed to fetch {filename}"));
+                        source.set(format!("// Failed to fetch {value}"));
                     }
                 }
                 loading.set(false);
@@ -493,9 +638,16 @@ fn app() -> Html {
                     <option value="" selected=true disabled=true>
                         { if *loading { "Loading..." } else { "Load demo..." } }
                     </option>
-                    { for DEMOS.iter().map(|(file, label)| html! {
-                        <option value={*file}>{format!("{file} — {label}")}</option>
-                    }) }
+                    <optgroup label="Interactive">
+                        { for INTERACTIVE_DEMOS.iter().map(|(id, label, _)| html! {
+                            <option value={*id}>{*label}</option>
+                        }) }
+                    </optgroup>
+                    <optgroup label="tc24r demos">
+                        { for DEMOS.iter().map(|(file, label)| html! {
+                            <option value={*file}>{format!("{file} — {label}")}</option>
+                        }) }
+                    </optgroup>
                 </select>
             </div>
         </main>
