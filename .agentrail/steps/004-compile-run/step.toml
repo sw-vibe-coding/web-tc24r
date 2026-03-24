@@ -1,7 +1,8 @@
 number = 4
 slug = "compile-run"
-status = "pending"
+status = "completed"
 description = "Wire compile and run workflow in browser"
 role = "legacy"
 context_files = []
 created_at = "2026-03-23T17:55:48"
+completed_at = "2026-03-23T18:42:21"

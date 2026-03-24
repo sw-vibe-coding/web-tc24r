@@ -1,6 +1,6 @@
 number = 5
 slug = "output-display"
-status = "pending"
+status = "in-progress"
 description = "Show assembler output and emulator execution results"
 role = "legacy"
 context_files = []
