@@ -12,26 +12,36 @@ use yew::prelude::*;
 
 use editor::Editor;
 
-const DEFAULT_SOURCE: &str = r#"// COR24 C — UART hello + LED
-void putc(int c) {
-    *(char *)0xFF0100 = c;
-}
-
-void led_on() {
-    *(char *)0xFF0000 = 0;
-}
+const DEFAULT_SOURCE: &str = r#"// Hello, World! — COR24 C with printf and LED
+#include <stdio.h>
 
 int main() {
-    putc(72);   // H
-    putc(105);  // i
-    putc(33);   // !
-    led_on();
+    printf("Hello, World!\n");
+    printf("2 + 2 = %d\n", 2 + 2);
+
+    // Light LED D2 (active-low: write 0 to turn on)
+    *(char *)0xFF0000 = 0;
+
     return 42;
 }
 "#;
 
 /// Built-in interactive demos (inline source, not fetched from GitHub).
 const INTERACTIVE_DEMOS: &[(&str, &str, &str)] = &[
+    ("hello", "Hello, World! (printf + LED)", r#"// Hello, World! — COR24 C with printf and LED
+#include <stdio.h>
+
+int main() {
+    printf("Hello, World!\n");
+    printf("2 + 2 = %d\n", 2 + 2);
+
+    // Light LED D2 (active-low: write 0 to turn on)
+    *(char *)0xFF0000 = 0;
+
+    return 42;
+}
+"#),
+
     ("echo", "UART echo (type to see characters)", r#"// UART echo — type in the terminal, characters echo back
 // Demonstrates: interrupt-driven UART RX, polling UART TX
 // Uses __attribute__((interrupt)) for the ISR
@@ -671,6 +681,30 @@ fn app() -> Html {
                     </optgroup>
                 </select>
             </div>
+
+            // Bundled headers (collapsible)
+            <details style="font-size:0.8rem;">
+                <summary style="color:#6c7086; cursor:pointer; user-select:none;">
+                    {"Bundled headers (stdio.h, stdlib.h, string.h, cor24.h, stdbool.h)"}
+                </summary>
+                <div style="display:flex; gap:8px; margin-top:8px; max-height:300px; overflow:auto;">
+                    { for compiler::HEADERS.iter().map(|(name, content)| html! {
+                        <details style="flex:1; min-width:0;">
+                            <summary style="color:#89b4fa; cursor:pointer; font-family:monospace; \
+                                            font-size:0.75rem; padding:4px 8px; background:#181825; \
+                                            border-radius:4px 4px 0 0; border:1px solid #313244;">
+                                {*name}
+                            </summary>
+                            <pre style="margin:0; padding:8px; background:#11111b; color:#cdd6f4; \
+                                        border:1px solid #313244; border-top:none; border-radius:0 0 4px 4px; \
+                                        font-size:12px; line-height:1.4; white-space:pre-wrap; \
+                                        max-height:250px; overflow:auto;">
+                                {*content}
+                            </pre>
+                        </details>
+                    }) }
+                </div>
+            </details>
 
             // Footer
             <div style="display:flex; justify-content:space-between; font-size:0.65rem; \

@@ -41,7 +41,7 @@ pub fn pc_to_listing_line(listing: &[AssembledLine], pc: u32) -> Option<usize> {
 }
 
 /// Bundled tc24r freestanding headers for in-browser #include expansion.
-const HEADERS: &[(&str, &str)] = &[
+pub const HEADERS: &[(&str, &str)] = &[
     ("stdio.h", include_str!("../../tc24r/include/stdio.h")),
     ("stdlib.h", include_str!("../../tc24r/include/stdlib.h")),
     ("string.h", include_str!("../../tc24r/include/string.h")),
