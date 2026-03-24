@@ -687,7 +687,7 @@ fn app() -> Html {
             </div>
 
             // Bundled headers (collapsible)
-            <details style="font-size:0.8rem;">
+            <details style="font-size:0.9rem;">
                 <summary style="color:#bac2de; cursor:pointer; user-select:none;">
                     {"Bundled headers (stdio.h, stdlib.h, string.h, cor24.h, stdbool.h)"}
                 </summary>
@@ -712,7 +712,7 @@ fn app() -> Html {
 
             // Footer
             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; \
-                        font-size:0.85rem; color:#bac2de; padding-top:4px;">
+                        font-size:0.9rem; color:#bac2de; padding-top:4px;">
                 <span>{"\u{00a9} 2026 Michael A. Wright"}</span>
                 <span>{"\u{00b7}"}</span>
                 <span>{"MIT License"}</span>
