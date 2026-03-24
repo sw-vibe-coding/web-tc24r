@@ -7,6 +7,19 @@ pub struct CompileResult {
     pub output: String,
 }
 
+/// Convert a byte offset in source to a 1-based line number.
+fn offset_to_line(source: &str, offset: usize) -> usize {
+    source[..offset.min(source.len())].bytes().filter(|&b| b == b'\n').count() + 1
+}
+
+/// Format a CompileError with line number if span is available.
+fn format_error(stage: &str, source: &str, message: &str, span: Option<&tc24r_span::Span>) -> String {
+    match span {
+        Some(s) => format!("{stage} error (line {}): {message}", offset_to_line(source, s.offset)),
+        None => format!("{stage} error: {message}"),
+    }
+}
+
 /// Compile C source to COR24 assembly, assemble, and run.
 pub fn compile_and_run(source: &str) -> CompileResult {
     // Stage 1: Preprocess (no includes in browser)
@@ -18,7 +31,7 @@ pub fn compile_and_run(source: &str) -> CompileResult {
         Err(e) => {
             return CompileResult {
                 assembly: String::new(),
-                output: format!("Lexer error: {}", e.message),
+                output: format_error("Lexer", &preprocessed, &e.message, e.span.as_ref()),
             };
         }
     };
@@ -29,7 +42,7 @@ pub fn compile_and_run(source: &str) -> CompileResult {
         Err(e) => {
             return CompileResult {
                 assembly: String::new(),
-                output: format!("Parser error: {}", e.message),
+                output: format_error("Parser", &preprocessed, &e.message, e.span.as_ref()),
             };
         }
     };

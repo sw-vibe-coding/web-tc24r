@@ -1513,6 +1513,7 @@ dependencies = [
  "tc24r-lexer",
  "tc24r-parser",
  "tc24r-preprocess",
+ "tc24r-span",
  "wasm-bindgen",
  "web-sys",
  "yew",

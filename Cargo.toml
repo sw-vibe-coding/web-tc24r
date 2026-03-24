@@ -9,6 +9,7 @@ wasm-bindgen = "0.2"
 web-sys = { version = "0.3", features = ["HtmlTextAreaElement"] }
 
 # tc24r compiler pipeline (C → COR24 assembly)
+tc24r-span = { path = "../tc24r/components/core/crates/tc24r-span" }
 tc24r-preprocess = { path = "../tc24r/components/frontend/crates/tc24r-preprocess" }
 tc24r-lexer = { path = "../tc24r/components/frontend/crates/tc24r-lexer" }
 tc24r-parser = { path = "../tc24r/components/frontend/crates/tc24r-parser" }
