@@ -65,6 +65,8 @@ const DEMOS: &[(&str, &str)] = &[
     ("demo37.c", "anonymous struct/union members"),
     ("demo38.c", "struct brace initializer"),
     ("demo39.c", "printf and long branches"),
+    ("demo40.c", "malloc/free (stdlib.h)"),
+    ("demo41.c", "getc, atoi, string.h"),
     ("demo42.c", "nested struct (linked list)"),
     ("demo43.c", "Lisp-style cons cells"),
     ("demo44.c", "Lisp data types and printer"),
@@ -157,20 +159,20 @@ fn app() -> Html {
 
             <div style="display:flex; flex:1; gap:12px; min-height:0;">
                 // C source editor
-                <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
+                <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:8px;">
                     <label style="font-size:0.85rem; color:#a6adc8;">{"C Source"}</label>
                     <Editor value={AttrValue::from((*source).clone())} on_change={on_source_change}
                             error_line={c_error_line} />
                 </div>
 
                 // Generated assembly
-                <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
+                <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:8px;">
                     <label style="font-size:0.85rem; color:#a6adc8;">{"Listing"}</label>
                     { render_listing(result.as_ref().map(|r| r.listing.as_slice()).unwrap_or(&[]), asm_error_line) }
                 </div>
 
                 // Execution output
-                <div style="flex:1; display:flex; flex-direction:column; gap:8px;">
+                <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:8px;">
                     <label style="font-size:0.85rem; color:#a6adc8;">{"Output"}</label>
                     <div style="flex:1; background:#181825; border:1px solid #313244; \
                                 border-radius:6px; padding:12px; font-family:monospace; font-size:14px; \

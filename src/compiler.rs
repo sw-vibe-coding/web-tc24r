@@ -46,10 +46,60 @@ fn pc_to_listing_line(listing: &[AssembledLine], pc: u32) -> Option<usize> {
     None
 }
 
+/// Bundled tc24r freestanding headers for in-browser #include expansion.
+const HEADERS: &[(&str, &str)] = &[
+    ("stdio.h", include_str!("../../tc24r/include/stdio.h")),
+    ("stdlib.h", include_str!("../../tc24r/include/stdlib.h")),
+    ("string.h", include_str!("../../tc24r/include/string.h")),
+    ("cor24.h", include_str!("../../tc24r/include/cor24.h")),
+    ("stdbool.h", include_str!("../../tc24r/include/stdbool.h")),
+];
+
+/// Expand `#include <...>` and `#include "..."` directives using bundled headers.
+/// Respects `#pragma once` — each header is included at most once.
+fn expand_includes(source: &str) -> String {
+    let mut included = std::collections::HashSet::new();
+    let mut output = String::with_capacity(source.len() * 2);
+    expand_includes_inner(source, &mut included, &mut output);
+    output
+}
+
+fn expand_includes_inner(source: &str, included: &mut std::collections::HashSet<&'static str>, output: &mut String) {
+    for line in source.lines() {
+        let trimmed = line.trim();
+        if let Some(name) = parse_include(trimmed) {
+            if let Some((key, content)) = HEADERS.iter().find(|(k, _)| *k == name)
+                && !included.contains(key)
+            {
+                if content.lines().any(|l| l.trim() == "#pragma once") {
+                    included.insert(key);
+                }
+                expand_includes_inner(content, included, output);
+            }
+            // Skip unrecognized includes silently
+        } else {
+            output.push_str(line);
+            output.push('\n');
+        }
+    }
+}
+
+fn parse_include(line: &str) -> Option<&str> {
+    let rest = line.strip_prefix("#include")?.trim();
+    if let Some(inner) = rest.strip_prefix('<').and_then(|r| r.strip_suffix('>')) {
+        Some(inner.trim())
+    } else if let Some(inner) = rest.strip_prefix('"').and_then(|r| r.strip_suffix('"')) {
+        Some(inner.trim())
+    } else {
+        None
+    }
+}
+
 /// Compile C source to COR24 assembly, assemble, and run.
 pub fn compile_and_run(source: &str) -> CompileResult {
-    // Stage 1: Preprocess (no includes in browser)
-    let preprocessed = tc24r_preprocess::preprocess(source, None, &[]);
+    // Stage 1: Expand includes, then preprocess
+    let expanded = expand_includes(source);
+    let preprocessed = tc24r_preprocess::preprocess(&expanded, None, &[]);
 
     let c_err = |msg: String, line: Option<usize>| CompileResult {
         listing: Vec::new(),
@@ -116,7 +166,7 @@ pub fn compile_and_run(source: &str) -> CompileResult {
     emu.load_program_extent(result.bytes.len() as u32);
     emu.resume();
 
-    let batch = emu.run_batch(100_000);
+    let batch = emu.run_batch(1_000_000);
 
     let uart = emu.get_uart_output().to_string();
     let pc = emu.pc();
@@ -133,7 +183,7 @@ pub fn compile_and_run(source: &str) -> CompileResult {
     let (status, error): (Option<String>, Option<CompileError>) = match batch.reason {
         cor24_emulator::StopReason::Halted => (Some("Halted".into()), None),
         cor24_emulator::StopReason::CycleLimit => {
-            (None, runtime_err(format!("Instruction limit reached (100k) at PC={pc:#06x}")))
+            (None, runtime_err(format!("Instruction limit reached (1M) at PC={pc:#06x}")))
         }
         cor24_emulator::StopReason::Breakpoint(addr) => {
             (Some(format!("Breakpoint at {addr:#06x}")), None)
