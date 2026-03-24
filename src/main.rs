@@ -2,6 +2,8 @@ mod compiler;
 mod editor;
 mod highlight;
 
+use wasm_bindgen::JsCast;
+use web_sys::HtmlSelectElement;
 use yew::prelude::*;
 
 use editor::Editor;
@@ -24,6 +26,55 @@ int main() {
 }
 "#;
 
+const DEMOS: &[(&str, &str)] = &[
+    ("demo.c", "counter"),
+    ("demo2.c", "char, pointers, casts, MMIO"),
+    ("demo3.c", "hex literals, pointer arithmetic, strings"),
+    ("demo4.c", "software divide and modulo"),
+    ("demo5.c", "arrays"),
+    ("demo6.c", "global char, pointer, array patterns"),
+    ("demo7.c", "pointer subtraction"),
+    ("demo8.c", "preprocessor #define"),
+    ("demo9.c", "UART RX interrupt"),
+    ("demo11.c", "logical AND/OR short-circuit"),
+    ("demo12.c", "do...while loop"),
+    ("demo13.c", "break and continue"),
+    ("demo14.c", "increment and decrement"),
+    ("demo15.c", "ternary operator"),
+    ("demo16.c", "character literals"),
+    ("demo17.c", "multi-declaration"),
+    ("demo18.c", "sizeof operator"),
+    ("demo19.c", "static and extern"),
+    ("demo20.c", "statement expressions (GCC ext)"),
+    ("demo21.c", "compound assignment operators"),
+    ("demo22.c", "braceless control flow"),
+    ("demo23.c", "enum"),
+    ("demo24.c", "typedef"),
+    ("demo25.c", "struct"),
+    ("demo26.c", "switch/case"),
+    ("demo27.c", "function prototypes"),
+    ("demo28.c", "union"),
+    ("demo29.c", "sizeof with array types"),
+    ("demo30.c", "line continuation"),
+    ("demo31.c", "tentative definitions"),
+    ("demo32.c", "multi-declarator typedef"),
+    ("demo33.c", "comma-separated struct/union members"),
+    ("demo34.c", "multi-dimensional arrays"),
+    ("demo35.c", "struct array members"),
+    ("demo36.c", "forward-declared struct tags"),
+    ("demo37.c", "anonymous struct/union members"),
+    ("demo38.c", "struct brace initializer"),
+    ("demo39.c", "printf and long branches"),
+    ("demo42.c", "nested struct (linked list)"),
+    ("demo43.c", "Lisp-style cons cells"),
+    ("demo44.c", "Lisp data types and printer"),
+    ("demo45.c", "Lisp eval: (+ 40 2) => 42"),
+    ("demo46.c", "unsigned int, shifts, comparisons"),
+];
+
+const RAW_BASE: &str =
+    "https://raw.githubusercontent.com/sw-vibe-coding/tc24r/main/demos/";
+
 #[function_component(App)]
 fn app() -> Html {
     let source = use_state(|| DEFAULT_SOURCE.to_string());
@@ -41,6 +92,46 @@ fn app() -> Html {
         let result = result.clone();
         Callback::from(move |_: MouseEvent| {
             result.set(Some(compiler::compile_and_run(&source)));
+        })
+    };
+
+    let loading = use_state(|| false);
+
+    let on_demo_select = {
+        let source = source.clone();
+        let result = result.clone();
+        let loading = loading.clone();
+        Callback::from(move |e: Event| {
+            let Some(select) = e.target().and_then(|t| t.dyn_into::<HtmlSelectElement>().ok()) else {
+                return;
+            };
+            let filename = select.value();
+            if filename.is_empty() {
+                return;
+            }
+            // Reset select to placeholder.
+            select.set_value("");
+
+            let url = format!("{RAW_BASE}{filename}");
+            let source = source.clone();
+            let result = result.clone();
+            let loading = loading.clone();
+            loading.set(true);
+            wasm_bindgen_futures::spawn_local(async move {
+                match gloo_net::http::Request::get(&url).send().await {
+                    Ok(resp) if resp.ok() => {
+                        if let Ok(text) = resp.text().await {
+                            source.set(text);
+                            result.set(None);
+                        }
+                    }
+                    _ => {
+                        source.set(format!("// Failed to fetch {filename}"));
+                        result.set(None);
+                    }
+                }
+                loading.set(false);
+            });
         })
     };
 
@@ -89,11 +180,24 @@ fn app() -> Html {
                 </div>
             </div>
 
-            <button onclick={on_run}
-                style="align-self:flex-start; padding:8px 24px; background:#89b4fa; color:#1e1e2e; \
-                       border:none; border-radius:6px; font-size:1rem; font-weight:600; cursor:pointer;">
-                {"Compile & Run"}
-            </button>
+            <div style="display:flex; gap:12px; align-items:center;">
+                <button onclick={on_run}
+                    style="padding:8px 24px; background:#89b4fa; color:#1e1e2e; \
+                           border:none; border-radius:6px; font-size:1rem; font-weight:600; cursor:pointer;">
+                    {"Compile & Run"}
+                </button>
+
+                <select onchange={on_demo_select}
+                    style="padding:6px 12px; background:#313244; color:#cdd6f4; border:1px solid #45475a; \
+                           border-radius:6px; font-size:0.85rem; cursor:pointer;">
+                    <option value="" selected=true disabled=true>
+                        { if *loading { "Loading..." } else { "Load demo..." } }
+                    </option>
+                    { for DEMOS.iter().map(|(file, label)| html! {
+                        <option value={*file}>{format!("{file} — {label}")}</option>
+                    }) }
+                </select>
+            </div>
         </main>
     }
 }

@@ -1509,12 +1509,14 @@ name = "web-tc24r"
 version = "0.1.0"
 dependencies = [
  "cor24-emulator",
+ "gloo-net 0.5.0",
  "tc24r-codegen",
  "tc24r-lexer",
  "tc24r-parser",
  "tc24r-preprocess",
  "tc24r-span",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
  "web-sys",
  "yew",
 ]
