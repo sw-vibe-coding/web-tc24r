@@ -28,7 +28,10 @@ int main() {
 
 /// Built-in interactive demos (inline source, not fetched from GitHub).
 const INTERACTIVE_DEMOS: &[(&str, &str, &str)] = &[
-    ("hello", "Hello, World! (printf + LED)", r#"// Hello, World! — COR24 C with printf and LED
+    (
+        "hello",
+        "Hello, World! (printf + LED)",
+        r#"// Hello, World! — COR24 C with printf and LED
 #include <stdio.h>
 
 int main() {
@@ -40,9 +43,12 @@ int main() {
 
     return 42;
 }
-"#),
-
-    ("echo", "UART echo (type to see characters)", r#"// UART echo — type in the terminal, characters echo back
+"#,
+    ),
+    (
+        "echo",
+        "UART echo (type to see characters)",
+        r#"// UART echo — type in the terminal, characters echo back
 // Demonstrates: interrupt-driven UART RX, polling UART TX
 // Uses __attribute__((interrupt)) for the ISR
 
@@ -78,9 +84,12 @@ int main() {
     // Spin forever (ISR handles input)
     while (1) {}
 }
-"#),
-
-    ("led-switch", "LED follows switch S2", r#"// LED follows switch — press S2 to light LED D2
+"#,
+    ),
+    (
+        "led-switch",
+        "LED follows switch S2",
+        r#"// LED follows switch — press S2 to light LED D2
 // Demonstrates: polling switch input, controlling LED output
 // Click the S2 button below to toggle!
 
@@ -95,9 +104,12 @@ int main() {
         *(char *)LED_REG = sw & 1;
     }
 }
-"#),
-
-    ("counter", "Live counter on UART", r#"// Live counter — prints incrementing numbers
+"#,
+    ),
+    (
+        "counter",
+        "Live counter on UART",
+        r#"// Live counter — prints incrementing numbers
 // Demonstrates: busy-wait loop, UART output
 
 #include <stdio.h>
@@ -115,9 +127,12 @@ int main() {
         delay();
     }
 }
-"#),
-
-    ("adder", "Interactive adder (type two numbers)", r#"// Interactive adder — type two numbers separated by Enter
+"#,
+    ),
+    (
+        "adder",
+        "Interactive adder (type two numbers)",
+        r#"// Interactive adder — type two numbers separated by Enter
 // Demonstrates: UART input parsing, printf output
 
 #include <stdio.h>
@@ -151,8 +166,52 @@ int main() {
         printf("= %d\n", a + b);
     }
 }
-"#),
+"#,
+    ),
 ];
+
+/// Web-only variant of demo10 (CLI demo10 uses a local header file demo10_io.h
+/// that isn't available in the web compiler; this version exercises the same
+/// #include and #pragma once features using the five bundled headers instead).
+const DEMO10B_SRC: &str = r#"// tc24r demo10b — #include with bundled headers (web variant)
+//
+// The CLI demo10 tests #include with a local header (demo10_io.h).
+// This web variant tests the same #include and #pragma once features
+// using the five headers bundled in the web compiler instead.
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <cor24.h>
+#include <stdbool.h>
+
+int main() {
+    // stdio.h: printf
+    printf("Include test\n");
+
+    // stdlib.h: malloc/free
+    int *p = (int *)malloc(sizeof(int));
+    *p = 10;
+    int v = *p;
+    free(p);
+
+    // string.h: strlen
+    char *s = "hello";
+    int len = strlen(s);
+
+    // cor24.h: UART_STATUS register
+    int status = UART_STATUS;
+
+    // stdbool.h: true/false
+    bool ok = true;
+
+    if (ok && v == 10 && len == 5 && status == 0xFF0101) {
+        printf("All headers OK\n");
+        return 42;
+    }
+    return 0;
+}
+"#;
 
 const DEMOS: &[(&str, &str)] = &[
     ("demo.c", "counter"),
@@ -164,6 +223,7 @@ const DEMOS: &[(&str, &str)] = &[
     ("demo7.c", "pointer subtraction"),
     ("demo8.c", "preprocessor #define"),
     ("demo9.c", "UART RX interrupt"),
+    ("demo10b.c", "#include all bundled headers"),
     ("demo11.c", "logical AND/OR short-circuit"),
     ("demo12.c", "do...while loop"),
     ("demo13.c", "break and continue"),
@@ -200,10 +260,12 @@ const DEMOS: &[(&str, &str)] = &[
     ("demo44.c", "Lisp data types and printer"),
     ("demo45.c", "Lisp eval: (+ 40 2) => 42"),
     ("demo46.c", "unsigned int, shifts, comparisons"),
+    ("demo47.c", "struct pointer array indexing (BUG-010)"),
+    ("demo48.c", "global struct array (BUG-011)"),
+    ("demo49.c", "parenthesized ptr arithmetic + arrow (BUG-012)"),
 ];
 
-const RAW_BASE: &str =
-    "https://raw.githubusercontent.com/sw-vibe-coding/tc24r/main/demos/";
+const RAW_BASE: &str = "https://raw.githubusercontent.com/sw-vibe-coding/tc24r/main/demos/";
 
 const REG_NAMES: [&str; 8] = ["r0", "r1", "r2", "fp", "sp", "z", "iv", "ir"];
 
@@ -436,19 +498,33 @@ fn app() -> Html {
         let status_msg = status_msg.clone();
         let loading = loading.clone();
         Callback::from(move |e: Event| {
-            let Some(select) = e.target().and_then(|t| t.dyn_into::<HtmlSelectElement>().ok()) else {
+            let Some(select) = e
+                .target()
+                .and_then(|t| t.dyn_into::<HtmlSelectElement>().ok())
+            else {
                 return;
             };
             let value = select.value();
-            if value.is_empty() { return; }
+            if value.is_empty() {
+                return;
+            }
             select.set_value("");
 
             // Stop any running emulator
             *interval_handle.borrow_mut() = None;
             running.set(false);
 
-            // Check interactive demos first (inline source)
-            if let Some((_, _, src)) = INTERACTIVE_DEMOS.iter().find(|(id, _, _)| *id == value) {
+            // Check inline demos first (not fetched from GitHub)
+            let inline_src = INTERACTIVE_DEMOS
+                .iter()
+                .find(|(id, _, _)| *id == value)
+                .map(|(_, _, src)| *src)
+                .or(if value == "demo10b.c" {
+                    Some(DEMO10B_SRC)
+                } else {
+                    None
+                });
+            if let Some(src) = inline_src {
                 source.set(src.to_string());
                 compile_error.set(None);
                 listing.set(Vec::new());
@@ -484,10 +560,12 @@ fn app() -> Html {
     };
 
     // --- Error lines for highlighting ---
-    let c_error_line = compile_error.as_ref()
+    let c_error_line = compile_error
+        .as_ref()
         .filter(|e| e.source == compiler::ErrorSource::C)
         .and_then(|e| e.line);
-    let asm_error_line = compile_error.as_ref()
+    let asm_error_line = compile_error
+        .as_ref()
         .filter(|e| e.source == compiler::ErrorSource::Assembler)
         .and_then(|e| e.line)
         .or(*runtime_error_line);
@@ -744,7 +822,12 @@ fn render_listing(listing: &[AssembledLine], error_line: Option<usize>) -> Html 
             format!("{:>22}{}", "", line.source)
         } else {
             let hex: String = line.bytes.iter().map(|b| format!("{b:02x} ")).collect();
-            format!("{:06x}  {:<14}{}", line.address, hex.trim_end(), line.source)
+            format!(
+                "{:06x}  {:<14}{}",
+                line.address,
+                hex.trim_end(),
+                line.source
+            )
         }
     }
 

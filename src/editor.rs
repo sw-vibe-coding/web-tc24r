@@ -61,7 +61,11 @@ pub fn editor(props: &EditorProps) -> Html {
         .map(|(i, line_spans)| {
             let line_num = i + 1;
             let is_error = error_line == Some(line_num);
-            let bg = if is_error { "background:rgba(243,139,168,0.15);" } else { "" };
+            let bg = if is_error {
+                "background:rgba(243,139,168,0.15);"
+            } else {
+                ""
+            };
             html! {
                 <div style={format!("min-height:1.5em;{bg}")}>
                     { for line_spans.iter().map(|(text, color)| html! {
@@ -145,7 +149,9 @@ pub fn editor(props: &EditorProps) -> Html {
         let pre_ref = pre_ref.clone();
         let gutter_ref = gutter_ref.clone();
         Callback::from(move |e: Event| {
-            if let Some(textarea) = e.target().and_then(|t| t.dyn_into::<HtmlTextAreaElement>().ok())
+            if let Some(textarea) = e
+                .target()
+                .and_then(|t| t.dyn_into::<HtmlTextAreaElement>().ok())
             {
                 let scroll_top = textarea.scroll_top();
                 if let Some(pre) = pre_ref.cast::<web_sys::HtmlElement>() {

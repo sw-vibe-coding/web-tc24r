@@ -26,7 +26,11 @@ pub struct CompileOutput {
 
 /// Convert a byte offset in source to a 1-based line number.
 fn offset_to_line(source: &str, offset: usize) -> usize {
-    source[..offset.min(source.len())].bytes().filter(|&b| b == b'\n').count() + 1
+    source[..offset.min(source.len())]
+        .bytes()
+        .filter(|&b| b == b'\n')
+        .count()
+        + 1
 }
 
 /// Find the 1-based listing line whose address range contains the given PC.
@@ -114,7 +118,10 @@ fn resolve_location(source_map: &[SourceLoc], expanded_line: usize) -> SourceLoc
     if idx < source_map.len() {
         source_map[idx]
     } else {
-        SourceLoc { file: "C", line: expanded_line }
+        SourceLoc {
+            file: "C",
+            line: expanded_line,
+        }
     }
 }
 
@@ -138,14 +145,22 @@ pub fn compile(source: &str) -> CompileOutput {
         CompileOutput {
             listing: Vec::new(),
             bytes: Vec::new(),
-            error: Some(CompileError { message: msg, source: error_source, line, header }),
+            error: Some(CompileError {
+                message: msg,
+                source: error_source,
+                line,
+                header,
+            }),
         }
     };
 
     let tokens = match tc24r_lexer::Lexer::new(&preprocessed).tokenize() {
         Ok(t) => t,
         Err(e) => {
-            let line = e.span.as_ref().map(|s| offset_to_line(&preprocessed, s.offset));
+            let line = e
+                .span
+                .as_ref()
+                .map(|s| offset_to_line(&preprocessed, s.offset));
             return make_error(e.message.clone(), line);
         }
     };
@@ -153,7 +168,10 @@ pub fn compile(source: &str) -> CompileOutput {
     let program = match tc24r_parser::parse(tokens) {
         Ok(p) => p,
         Err(e) => {
-            let line = e.span.as_ref().map(|s| offset_to_line(&preprocessed, s.offset));
+            let line = e
+                .span
+                .as_ref()
+                .map(|s| offset_to_line(&preprocessed, s.offset));
             return make_error(e.message.clone(), line);
         }
     };

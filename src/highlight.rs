@@ -10,24 +10,22 @@ pub struct Span {
 }
 
 // Catppuccin Mocha palette
-const KEYWORD: &str = "#cba6f7";   // mauve
-const TYPE_KW: &str = "#89b4fa";   // blue
-const NUMBER: &str = "#fab387";    // peach
-const STRING: &str = "#a6e3a1";    // green
-const COMMENT: &str = "#a6adc8";   // overlay0
-const PREPROC: &str = "#f38ba8";   // red
-const PLAIN: &str = "#cdd6f4";     // text
+const KEYWORD: &str = "#cba6f7"; // mauve
+const TYPE_KW: &str = "#89b4fa"; // blue
+const NUMBER: &str = "#fab387"; // peach
+const STRING: &str = "#a6e3a1"; // green
+const COMMENT: &str = "#a6adc8"; // overlay0
+const PREPROC: &str = "#f38ba8"; // red
+const PLAIN: &str = "#cdd6f4"; // text
 const FUNC_CALL: &str = "#f9e2af"; // yellow
 
 const KEYWORDS: &[&str] = &[
-    "break", "case", "continue", "default", "do", "else", "enum", "extern",
-    "for", "goto", "if", "return", "sizeof", "static", "struct", "switch",
-    "typedef", "union", "volatile", "while",
+    "break", "case", "continue", "default", "do", "else", "enum", "extern", "for", "goto", "if",
+    "return", "sizeof", "static", "struct", "switch", "typedef", "union", "volatile", "while",
 ];
 
 const TYPE_KEYWORDS: &[&str] = &[
-    "char", "const", "double", "float", "int", "long", "short", "signed",
-    "unsigned", "void",
+    "char", "const", "double", "float", "int", "long", "short", "signed", "unsigned", "void",
 ];
 
 /// Highlight C source code into colored spans.
