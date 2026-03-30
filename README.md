@@ -1,3 +1,5 @@
+> **Stabilized.** Active development continues at [sw-embed/web-sw-cor24-tinyc](https://github.com/sw-embed/web-sw-cor24-tinyc). Bug fixes here may not yet be reflected in the fork — a commit comparison is pending.
+
 # web-tc24r
 
 Web UI for the [Tiny COR24 in Rust](https://github.com/sw-vibe-coding/tc24r) compiler. Live browser demos using Rust, Yew, and WebAssembly.
